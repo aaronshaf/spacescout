@@ -57,6 +57,7 @@ impl ScanState {
         self.is_cancelled.load(Ordering::Relaxed)
     }
     
+    #[allow(dead_code)]
     fn cancel(&self) {
         self.is_cancelled.store(true, Ordering::Relaxed);
     }
@@ -172,6 +173,7 @@ pub fn scan_directory(path: &Path, app_handle: &tauri::AppHandle) -> Result<File
 }
 
 // Scans directory to a specific depth, calculating sizes for all subdirectories
+#[allow(dead_code)]
 fn scan_directory_shallow(
     path: &Path,
     app_handle: &tauri::AppHandle,
@@ -252,6 +254,7 @@ fn scan_directory_shallow(
 }
 
 // Fast recursive size calculation without building full tree structure
+#[allow(dead_code)]
 fn calculate_directory_size(path: &Path, state: &mut ScanState) -> Result<u64, String> {
     let mut total_size = 0u64;
     
@@ -277,6 +280,7 @@ fn calculate_directory_size(path: &Path, state: &mut ScanState) -> Result<u64, S
 }
 
 // Fast parallel directory size calculation
+#[allow(dead_code)]
 fn calculate_directory_size_fast(path: &Path) -> Result<u64, String> {
     use rayon::prelude::*;
     use std::sync::atomic::AtomicU64;
@@ -694,7 +698,7 @@ fn build_tree_from_files(
         }
         
         // Get files for this directory
-        let mut dir_children = dir_contents.remove(dir_path).unwrap_or_default();
+        let dir_children = dir_contents.remove(dir_path).unwrap_or_default();
         
         // Only create directory node if it has significant size
         let dir_size = *dir_sizes.get(dir_path).unwrap_or(&0);
