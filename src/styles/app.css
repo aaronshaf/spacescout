@@ -19,6 +19,19 @@ body {
   padding: 20px;
 }
 
+.home .logo {
+  width: 120px;
+  height: 120px;
+  margin-bottom: 2rem;
+  filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.3));
+  animation: float 3s ease-in-out infinite;
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-10px); }
+}
+
 .home h1 {
   font-size: 3rem;
   margin-bottom: 1rem;
@@ -673,6 +686,10 @@ button:disabled {
   
   button:hover {
     background: #0051d5;
+  }
+  
+  .home .logo {
+    filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.1));
   }
   
   .custom-path input {

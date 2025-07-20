@@ -15,6 +15,7 @@ export const Home: React.FC = () => {
 
   return (
     <div className="home">
+      <img src="/logo.png" alt="SpaceScout Logo" className="logo" />
       <h1>SpaceScout</h1>
       <p>Select a location to analyze disk usage</p>
       
