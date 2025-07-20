@@ -1,0 +1,11 @@
+rules:
+  - id: no-as-casting
+    language: typescript
+    rule:
+      pattern: $EXPR as $TYPE
+      not:
+        any:
+          - pattern: $EXPR as const
+          - pattern: $EXPR as unknown
+    message: Type casting with 'as' is banned. Use type guards or 'as unknown' instead.
+    severity: error

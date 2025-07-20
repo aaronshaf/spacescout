@@ -1,0 +1,60 @@
+{
+  "name": "spacescout",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "prepare": "husky",
+    "dev": "vite dev",
+    "build": "tsc && vite build",
+    "preview": "vite preview",
+    "tauri": "tauri",
+    "typecheck": "tsc --noEmit",
+    "lint": "biome check src",
+    "lint:fix": "biome check --write src",
+    "format": "biome format --write src",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "test:e2e": "playwright test",
+    "check:sizes": "bun scripts/check-file-sizes.ts",
+    "check:ast": "sg scan"
+  },
+  "dependencies": {
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "@tauri-apps/api": "^2.2.0",
+    "effect": "^3.12.0",
+    "@effect/schema": "^0.75.5",
+    "@tanstack/react-router": "^1.91.0",
+    "@tanstack/react-query": "^5.64.0",
+    "d3": "^7.9.0"
+  },
+  "devDependencies": {
+    "@ast-grep/cli": "^0.30.0",
+    "@biomejs/biome": "^1.9.4",
+    "@playwright/test": "^1.49.1",
+    "@tanstack/react-router-devtools": "^1.91.0",
+    "@tauri-apps/cli": "^2.2.0",
+    "@testing-library/react": "^16.1.0",
+    "@testing-library/user-event": "^14.5.2",
+    "@types/bun": "^1.1.15",
+    "@types/d3": "^7.4.3",
+    "@types/react": "^18.3.13",
+    "@types/react-dom": "^18.3.1",
+    "@vitejs/plugin-react": "^4.3.4",
+    "@vitest/coverage-v8": "^2.1.8",
+    "glob": "^11.0.0",
+    "husky": "^9.1.7",
+    "lint-staged": "^15.3.0",
+    "typescript": "^5.7.2",
+    "vite": "^6.0.7",
+    "vitest": "^2.1.8"
+  },
+  "lint-staged": {
+    "src/**/*.{ts,tsx}": [
+      "biome check --no-errors-on-unmatched",
+      "sg scan"
+    ]
+  }
+}

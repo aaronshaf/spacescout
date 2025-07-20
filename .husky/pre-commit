@@ -1,0 +1,54 @@
+#!/bin/sh
+. "$(dirname "$0")/_/husky.sh"
+
+echo "🔍 Running pre-commit checks..."
+
+# Type checking
+echo "📝 Type checking..."
+bun run typecheck || exit 1
+
+# Linting
+echo "🧹 Linting..."
+bun run lint || exit 1
+
+# AST checks
+echo "🔍 Checking for banned patterns..."
+bun run check:ast || exit 1
+
+# File size checks
+echo "📏 Checking file sizes..."
+bun run check:sizes || exit 1
+
+# Rust file size checks
+echo "🦀 Checking Rust file sizes..."
+RUST_FILES=$(find src-tauri/src -name "*.rs" -type f 2>/dev/null)
+LARGE_FILES=""
+
+for file in $RUST_FILES; do
+    # Get line count
+    lines=$(wc -l < "$file" 2>/dev/null || echo 0)
+    
+    # Warn at 300 lines, block at 500 lines (stricter than TS to help LLMs)
+    if [ "$lines" -gt 500 ]; then
+        LARGE_FILES="${LARGE_FILES}❌ ERROR: $file has $lines lines (max: 500)\n"
+    elif [ "$lines" -gt 300 ]; then
+        echo "⚠️  WARNING: $file has $lines lines (consider splitting)"
+    fi
+done
+
+if [ -n "$LARGE_FILES" ]; then
+    echo -e "\n$LARGE_FILES"
+    echo "Please split large Rust files into smaller modules for better LLM context management."
+    exit 1
+fi
+
+# Unit tests with coverage
+echo "🧪 Running tests..."
+bun run test:coverage || exit 1
+
+# Format
+echo "✨ Running formatter..."
+bun run format
+
+# Run lint-staged
+bun x lint-staged

@@ -1,0 +1,30 @@
+# Rust formatting configuration
+# Helps keep code concise and readable for LLMs
+
+# Keep lines shorter for better readability
+max_width = 100
+hard_tabs = false
+tab_spaces = 4
+
+# Reduce vertical space
+blank_lines_upper_bound = 1
+blank_lines_lower_bound = 0
+
+# Merge small imports
+imports_granularity = "Crate"
+group_imports = "StdExternalCrate"
+
+# Keep code compact
+use_small_heuristics = "Max"
+where_single_line = true
+struct_lit_single_line = true
+fn_single_line = true
+
+# Comments
+wrap_comments = true
+comment_width = 80
+normalize_comments = true
+
+# Other formatting
+reorder_imports = true
+reorder_modules = true

@@ -1,0 +1,14 @@
+# Clippy linting configuration
+# Helps maintain clean, efficient Rust code
+
+# Warn on large functions
+too-many-lines-threshold = 100
+
+# Warn on complex functions
+cognitive-complexity-threshold = 25
+
+# Warn on large types
+type-complexity-threshold = 250
+
+# Enforce documentation
+missing-docs-in-crate-items = true

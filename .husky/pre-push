@@ -1,0 +1,13 @@
+#!/bin/sh
+. "$(dirname "$0")/_/husky.sh"
+
+echo "🚀 Running pre-push checks..."
+
+# All pre-commit checks
+.husky/pre-commit || exit 1
+
+# E2E tests
+echo "🎭 Running E2E tests..."
+bun run test:e2e || exit 1
+
+echo "✅ All checks passed!"
