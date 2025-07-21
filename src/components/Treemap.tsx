@@ -81,40 +81,44 @@ export const Treemap: React.FC<TreemapProps> = ({
       leaves: hierarchy.leaves().length
     });
 
-    // Create treemap
+    // Create treemap with more padding for nested view
     const treemap = d3.treemap<FileNode>()
       .size([width, height])
-      .padding(1)
-      .paddingInner(1)
+      .padding(2)
+      .paddingInner(3)
+      .paddingTop(20) // Extra space at top for parent labels
       .round(true)
       .tile(d3.treemapSquarify.ratio(1));
 
     const root = treemap(hierarchy);
     
-    const leaves = root.leaves();
-    console.log('[Treemap] Root leaves:', leaves.length, 'First few:', leaves.slice(0, 3).map(l => ({
-      name: l.data.name,
-      size: l.data.size,
-      value: l.value,
-      x0: l.x0,
-      y0: l.y0,
-      x1: l.x1,
-      y1: l.y1
-    })));
+    // Get nodes to render - first level (children) and second level (grandchildren)
+    const firstLevelNodes = root.children || [];
+    const nodesToRender: d3.HierarchyRectangularNode<FileNode>[] = [];
     
-    // Log treemap dimensions to debug
-    console.log('[Treemap] Canvas dimensions:', { width, height });
-    console.log('[Treemap] Root bounds:', { x0: root.x0, y0: root.y0, x1: root.x1, y1: root.y1 });
+    // Add first level nodes
+    firstLevelNodes.forEach(node => {
+      nodesToRender.push(node);
+      // Add second level nodes (grandchildren) if they exist and parent is a directory
+      if (node.children && node.data.isDir) {
+        node.children.forEach(child => {
+          nodesToRender.push(child);
+        });
+      }
+    });
     
-    // If no leaves, try to show the root's immediate children
-    const nodesToRender = leaves.length > 0 ? leaves : root.children || [];
+    // Sort by depth so parents are drawn first (behind children)
+    nodesToRender.sort((a, b) => a.depth - b.depth);
+    
+    console.log('[Treemap] Rendering nodes:', nodesToRender.length, 'nodes across 2 levels');
 
     // Color scale based on file types and directories - returns gradient URL
     const getColor = (node: d3.HierarchyRectangularNode<FileNode>) => {
       const name = node.data.name.toLowerCase();
       const isDir = node.data.isDir;
+      const depth = node.depth;
       
-      // Files are white, directories get colors
+      // Files are white
       if (!isDir) {
         return '#ffffff';
       }
@@ -122,8 +126,11 @@ export const Treemap: React.FC<TreemapProps> = ({
       // Create a hash-based color for consistent coloring by name
       const nameHash = name.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
       
-      // Different colors for directories based on name hash
-      const colorIndex = nameHash % 10; // First 10 gradients are for directories
+      // Use different color ranges based on depth
+      // First level gets brighter colors (0-9), second level gets slightly muted colors (10-15)
+      const colorOffset = depth === 1 ? 0 : 10;
+      const colorIndex = (nameHash % 6) + colorOffset;
+      
       return `url(#gradient-${colorIndex})`;
     };
 
@@ -274,20 +281,23 @@ export const Treemap: React.FC<TreemapProps> = ({
     nodesToRender.forEach((d) => {
       const nodeWidth = d.x1 - d.x0;
       const nodeHeight = d.y1 - d.y0;
+      const isParent = d.depth === 1 && d.children && d.children.length > 0;
       
       // Only show text if the node is large enough
       if (nodeWidth > 50 && nodeHeight > 30) {
         const isFile = !d.data.isDir;
         const textColor = isFile ? '#000000' : 'rgba(0, 0, 0, 0.9)';
-        const centerX = d.x0 + nodeWidth / 2;
-        const centerY = d.y0 + nodeHeight / 2;
+        
+        // Position text at top for parent directories, center for others
+        const textX = d.x0 + nodeWidth / 2;
+        const textY = isParent ? d.y0 + 15 : d.y0 + nodeHeight / 2 - (nodeHeight > 50 ? 8 : 0);
         
         const text = svg.append('text')
-          .attr('x', centerX)
-          .attr('y', centerY - (nodeHeight > 50 ? 8 : 0))
+          .attr('x', textX)
+          .attr('y', textY)
           .attr('text-anchor', 'middle')
-          .attr('font-size', '14px')
-          .attr('font-weight', '500')
+          .attr('font-size', isParent ? '16px' : '14px')
+          .attr('font-weight', isParent ? '600' : '500')
           .attr('fill', textColor)
           .style('user-select', 'none')
           .style('pointer-events', 'none')
@@ -316,11 +326,16 @@ export const Treemap: React.FC<TreemapProps> = ({
         
         text.text(displayName);
         
+        // Store the position for size text
+        const centerX = textX;
+        const centerY = d.y0 + nodeHeight / 2;
+        
         // Show size on second line if there's enough space
-        if (nodeHeight > 50 && nodeWidth > 80) {
+        if (nodeHeight > 50 && nodeWidth > 80 && !isParent) {
+          const sizeY = isParent ? textY + 20 : textY + 16;
           const sizeText = svg.append('text')
-            .attr('x', centerX)
-            .attr('y', centerY + 10)
+            .attr('x', textX)
+            .attr('y', sizeY)
             .attr('text-anchor', 'middle')
             .attr('font-size', '13px')
             .attr('font-weight', '400')
