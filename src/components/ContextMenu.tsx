@@ -70,13 +70,14 @@ export const ContextMenu: React.FC<ContextMenuProps> = ({
     >
       <ul className="context-menu-list">
         {isDir && onNavigate && (
-          <li className="context-menu-item" onClick={onNavigate}>
-            <span className="context-menu-icon">📂</span>
-            Open Directory
-          </li>
+          <>
+            <li className="context-menu-item" onClick={onNavigate}>
+              Open
+            </li>
+            <li className="context-menu-separator"></li>
+          </>
         )}
         <li className="context-menu-item" onClick={handleShowInFinder}>
-          <span className="context-menu-icon">🔍</span>
           Show in Finder
         </li>
       </ul>
