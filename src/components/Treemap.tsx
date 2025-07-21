@@ -67,10 +67,16 @@ export const Treemap: React.FC<TreemapProps> = ({
         (d.data as any).originalSize = d.data.size;
       })
       .sum((d) => {
-        // For the treemap to work correctly with pre-aggregated sizes:
-        // - Use the size directly for all nodes
-        // - D3 will use these sizes to calculate proportions
-        return d.size || 0;
+        // IMPORTANT: Only count leaf nodes to avoid double counting
+        // A leaf node is either:
+        // 1. A file (!isDir)
+        // 2. An empty directory (isDir but no children)
+        if (!d.isDir || !d.children || d.children.length === 0) {
+          return d.size || 0;
+        }
+        // For directories with children, return 0
+        // D3 will sum up their children's values automatically
+        return 0;
       })
       .sort((a, b) => (b.value || 0) - (a.value || 0));
     
@@ -91,8 +97,19 @@ export const Treemap: React.FC<TreemapProps> = ({
     console.log('[Treemap] Hierarchy created:', {
       value: hierarchy.value,
       height: hierarchy.height,
-      leaves: hierarchy.leaves().length
+      leaves: hierarchy.leaves().length,
+      rootSize: data.size,
+      discrepancy: (hierarchy.value || 0) - (data.size || 0)
     });
+    
+    // Sanity check - hierarchy value should not exceed root size
+    if ((hierarchy.value || 0) > (data.size || 0)) {
+      console.warn('[Treemap] WARNING: Hierarchy value exceeds root size!', {
+        hierarchyValue: hierarchy.value,
+        rootSize: data.size,
+        difference: (hierarchy.value || 0) - (data.size || 0)
+      });
+    }
     
     // Debug: Check values of top-level nodes
     if (hierarchy.children) {
