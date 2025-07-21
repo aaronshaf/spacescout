@@ -92,25 +92,18 @@ export const Treemap: React.FC<TreemapProps> = ({
 
     const root = treemap(hierarchy);
     
-    // Get nodes to render - first level (children) and second level (grandchildren)
-    const firstLevelNodes = root.children || [];
-    const nodesToRender: d3.HierarchyRectangularNode<FileNode>[] = [];
+    // Get all descendants up to depth 2 (root is 0, children are 1, grandchildren are 2)
+    const allNodes = root.descendants().filter(d => d.depth > 0 && d.depth <= 2);
     
-    // Add first level nodes
-    firstLevelNodes.forEach(node => {
-      nodesToRender.push(node);
-      // Add second level nodes (grandchildren) if they exist and parent is a directory
-      if (node.children && node.data.isDir) {
-        node.children.forEach(child => {
-          nodesToRender.push(child);
-        });
-      }
+    // Separate parent nodes (depth 1) and child nodes (depth 2)
+    const parentNodes = allNodes.filter(d => d.depth === 1);
+    const childNodes = allNodes.filter(d => d.depth === 2);
+    
+    console.log('[Treemap] Rendering nodes:', {
+      parents: parentNodes.length,
+      children: childNodes.length,
+      total: allNodes.length
     });
-    
-    // Sort by depth so parents are drawn first (behind children)
-    nodesToRender.sort((a, b) => a.depth - b.depth);
-    
-    console.log('[Treemap] Rendering nodes:', nodesToRender.length, 'nodes across 2 levels');
 
     // Color scale based on file types and directories - returns gradient URL
     const getColor = (node: d3.HierarchyRectangularNode<FileNode>) => {
@@ -171,12 +164,60 @@ export const Treemap: React.FC<TreemapProps> = ({
         .attr('stop-opacity', 1);
     });
     
-    // Create groups for each node to allow complex shapes
-    const nodeGroups = svg.selectAll<SVGGElement, d3.HierarchyRectangularNode<FileNode>>('g.node')
-      .data(nodesToRender)
+    // First, draw parent nodes (depth 1) that have children
+    const parentContainers = parentNodes.filter(d => d.children && d.children.length > 0);
+    
+    parentContainers.forEach(parent => {
+      const group = svg.append('g')
+        .attr('class', 'parent-node');
+      
+      // Draw parent rectangle
+      group.append('rect')
+        .attr('x', parent.x0)
+        .attr('y', parent.y0)
+        .attr('width', parent.x1 - parent.x0)
+        .attr('height', parent.y1 - parent.y0)
+        .attr('fill', getColor(parent))
+        .attr('stroke', 'rgba(255, 255, 255, 0.8)')
+        .attr('stroke-width', 1)
+        .style('cursor', 'pointer')
+        .on('dblclick', (event) => {
+          event.preventDefault();
+          if (onNodeClick) {
+            onNodeClick(parent.data);
+          }
+        })
+        .on('contextmenu', (event) => {
+          event.preventDefault();
+          setContextMenu({
+            x: event.clientX,
+            y: event.clientY,
+            node: parent.data
+          });
+        });
+      
+      // Add parent label at top
+      if (parent.x1 - parent.x0 > 80 && parent.y1 - parent.y0 > 30) {
+        group.append('text')
+          .attr('x', parent.x0 + (parent.x1 - parent.x0) / 2)
+          .attr('y', parent.y0 + 16)
+          .attr('text-anchor', 'middle')
+          .attr('font-size', '15px')
+          .attr('font-weight', '600')
+          .attr('fill', 'rgba(0, 0, 0, 0.9)')
+          .style('user-select', 'none')
+          .style('pointer-events', 'none')
+          .style('text-shadow', '0 0 3px rgba(255, 255, 255, 0.8)')
+          .text(parent.data.name);
+      }
+    });
+    
+    // Then draw all nodes (including childless parents and all children)
+    const nodeGroups = svg.selectAll<SVGGElement, d3.HierarchyRectangularNode<FileNode>>('g.child-node')
+      .data(allNodes)
       .enter()
       .append('g')
-      .attr('class', 'node')
+      .attr('class', d => d.depth === 1 ? 'parent-child-node' : 'child-node')
       .style('cursor', 'pointer')
       .on('click', (event, d) => {
         event.preventDefault();
@@ -189,7 +230,7 @@ export const Treemap: React.FC<TreemapProps> = ({
       .on('dblclick', (event, d) => {
         event.preventDefault();
         // Double-click navigates into directories
-        if (onNodeClick && d.data.isDir) {
+        if (onNodeClick && d.data.isDir && d.depth === 1) {
           onNodeClick(d.data);
         }
       })
@@ -202,8 +243,13 @@ export const Treemap: React.FC<TreemapProps> = ({
         });
       });
     
-    // Add rectangles or file shapes
+    // Add rectangles or file shapes for child nodes only (parents already drawn)
     nodeGroups.each(function(d) {
+      // Skip if this is a parent node with children (already drawn above)
+      if (d.depth === 1 && d.children && d.children.length > 0) {
+        return;
+      }
+      
       const group = d3.select(this);
       const width = d.x1 - d.x0;
       const height = d.y1 - d.y0;
@@ -277,8 +323,12 @@ export const Treemap: React.FC<TreemapProps> = ({
       }
     });
 
-    // Add text labels
-    nodesToRender.forEach((d) => {
+    // Add text labels for child nodes
+    allNodes.forEach((d) => {
+      // Skip parent labels if they have children (already added above)
+      if (d.depth === 1 && d.children && d.children.length > 0) {
+        return;
+      }
       const nodeWidth = d.x1 - d.x0;
       const nodeHeight = d.y1 - d.y0;
       const isParent = d.depth === 1 && d.children && d.children.length > 0;
