@@ -632,6 +632,69 @@ fn scan_directory_with_mdfind(
     build_tree_from_files(&all_files, &directory_sizes, path)
 }
 
+// Helper function to recursively build subtree
+fn build_subtree_recursive(
+    dir_path: &Path,
+    dir_nodes: &mut HashMap<PathBuf, FileNode>,
+    dir_contents: &mut HashMap<PathBuf, Vec<FileNode>>,
+    all_dirs: &[PathBuf],
+    current_level: usize,
+) -> Option<FileNode> {
+    let dir_name = dir_path.file_name()
+        .map(|n| n.to_string_lossy().to_string())
+        .unwrap_or_default();
+    
+    // Start with the basic directory node
+    let mut dir_node = if let Some(existing) = dir_nodes.remove(dir_path) {
+        existing
+    } else {
+        FileNode {
+            name: dir_name,
+            path: dir_path.to_string_lossy().to_string(),
+            size: 0,
+            is_dir: true,
+            children: None,
+        }
+    };
+    
+    let mut children = Vec::new();
+    
+    // Add files directly in this directory
+    if let Some(files) = dir_contents.remove(dir_path) {
+        children.extend(files);
+    }
+    
+    // Find and add subdirectories (only go 2 levels deep from root)
+    if current_level <= 2 {
+        let subdirs: Vec<PathBuf> = all_dirs.iter()
+            .filter(|p| {
+                p.parent() == Some(dir_path) && p != &dir_path
+            })
+            .cloned()
+            .collect();
+        
+        for subdir in subdirs {
+            if let Some(subdir_tree) = build_subtree_recursive(&subdir, dir_nodes, dir_contents, all_dirs, current_level + 1) {
+                children.push(subdir_tree);
+            }
+        }
+    }
+    
+    // Sort children by size
+    children.sort_by(|a, b| b.size.cmp(&a.size));
+    
+    // Limit children to top 50 items
+    if children.len() > 50 {
+        children.truncate(50);
+    }
+    
+    if !children.is_empty() {
+        dir_node.children = Some(children);
+    }
+    
+    Some(dir_node)
+}
+
 // Helper function to build tree structure from file list
 fn build_tree_from_files(
     files: &HashMap<PathBuf, u64>,
@@ -689,33 +752,8 @@ fn build_tree_from_files(
     let mut all_dirs: Vec<PathBuf> = dir_sizes.keys().cloned().collect();
     all_dirs.sort_by(|a, b| a.components().count().cmp(&b.components().count()));
     
-    // Build directory nodes
+    // Build directory nodes - but don't process them yet, we'll do it recursively
     let mut dir_nodes: HashMap<PathBuf, FileNode> = HashMap::new();
-    
-    for dir_path in &all_dirs {
-        if dir_path == root_path {
-            continue;
-        }
-        
-        // Get files for this directory
-        let dir_children = dir_contents.remove(dir_path).unwrap_or_default();
-        
-        // Only create directory node if it has significant size
-        let dir_size = *dir_sizes.get(dir_path).unwrap_or(&0);
-        if dir_size > 0 {
-            let dir_node = FileNode {
-                name: dir_path.file_name()
-                    .map(|n| n.to_string_lossy().to_string())
-                    .unwrap_or_default(),
-                path: dir_path.to_string_lossy().to_string(),
-                size: dir_size,
-                is_dir: true,
-                children: if dir_children.is_empty() { None } else { Some(dir_children) },
-            };
-            
-            dir_nodes.insert(dir_path.clone(), dir_node);
-        }
-    }
     
     // Get first-level directories under root
     let mut root_children: Vec<FileNode> = Vec::new();
@@ -734,25 +772,10 @@ fn build_tree_from_files(
     for subdir in immediate_subdirs {
         let subdir_size = *dir_sizes.get(&subdir).unwrap_or(&0);
         if subdir_size > 0 {
-            // Collect all descendant directories
-            let mut subdir_node = FileNode {
-                name: subdir.file_name()
-                    .map(|n| n.to_string_lossy().to_string())
-                    .unwrap_or_default(),
-                path: subdir.to_string_lossy().to_string(),
-                size: subdir_size,
-                is_dir: true,
-                children: None,
-            };
-            
-            // Add any files directly in this subdirectory
-            if let Some(files) = dir_contents.remove(&subdir) {
-                if !files.is_empty() {
-                    subdir_node.children = Some(files);
-                }
+            // Build complete subtree for this directory
+            if let Some(subdir_tree) = build_subtree_recursive(&subdir, &mut dir_nodes, &mut dir_contents, &all_dirs, root_level + 1) {
+                root_children.push(subdir_tree);
             }
-            
-            root_children.push(subdir_node);
         }
     }
     
