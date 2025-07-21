@@ -62,10 +62,15 @@ export const Treemap: React.FC<TreemapProps> = ({
 
     // Create hierarchy
     const hierarchy = d3.hierarchy<FileNode>(data)
+      .eachBefore((d) => {
+        // Store the original size for debugging
+        (d.data as any).originalSize = d.data.size;
+      })
       .sum((d) => {
-        // Only count leaf nodes (files and empty directories)
-        // D3 will automatically sum up the values for parent nodes
-        return !d.children || d.children.length === 0 ? (d.size || 0) : 0;
+        // For the treemap to work correctly with pre-aggregated sizes:
+        // - Use the size directly for all nodes
+        // - D3 will use these sizes to calculate proportions
+        return d.size || 0;
       })
       .sort((a, b) => (b.value || 0) - (a.value || 0));
     
@@ -82,24 +87,6 @@ export const Treemap: React.FC<TreemapProps> = ({
       } : null
     });
     
-    // If hierarchy has no value, recalculate
-    if (hierarchy.value === 0) {
-      console.warn('[Treemap] Hierarchy has no value, recalculating...');
-      // Try a different approach - use size for all nodes
-      hierarchy
-        .sum((d) => {
-          // For files, use their size
-          // For directories, if they have children, let D3 sum them up
-          // For empty directories, use their reported size
-          if (!d.isDir) {
-            return d.size || 0;
-          } else if (!d.children || d.children.length === 0) {
-            return d.size || 0;
-          }
-          return 0;
-        })
-        .sort((a, b) => (b.value || 0) - (a.value || 0));
-    }
 
     console.log('[Treemap] Hierarchy created:', {
       value: hierarchy.value,
