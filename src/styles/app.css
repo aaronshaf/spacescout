@@ -119,14 +119,12 @@ button:disabled {
   gap: 20px;
   padding: 10px 20px;
   background: #f6f6f6;
-  border-bottom: 1px solid #d1d1d1;
   min-height: 60px;
 }
 
 @media (prefers-color-scheme: dark) {
   .scan-view nav {
     background: #2a2a2a;
-    border-bottom-color: #444;
   }
 }
 

@@ -19,11 +19,7 @@
       "icons/icon.ico"
     ],
     "resources": [],
-    "macOS": {
-      "bundleId": "com.spacescout.app",
-      "category": "public.app-category.utilities",
-      "minimumSystemVersion": "10.15"
-    }
+    "category": "Utility"
   },
   "app": {
     "windows": [

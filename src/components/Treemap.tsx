@@ -138,11 +138,11 @@ export const Treemap: React.FC<TreemapProps> = ({
     // Create gradient definitions
     const defs = svg.append('defs');
     
-    // Create gradients for each color
+    // Create gradients for each color - using a more sophisticated palette
     const gradientColors = [
-      '#3182ce', '#38a169', '#d69e2e', '#e53e3e', '#805ad5', 
-      '#dd6b20', '#319795', '#e91e63', '#8b5cf6', '#06b6d4',
-      '#9e9e9e', '#795548', '#9c27b0', '#ff9800', '#4caf50', '#757575'
+      '#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', 
+      '#ec4899', '#06b6d4', '#84cc16', '#f97316', '#6366f1',
+      '#14b8a6', '#a855f7', '#22c55e', '#0ea5e9', '#f43f5e', '#64748b'
     ];
     
     gradientColors.forEach((color, i) => {
@@ -334,9 +334,14 @@ export const Treemap: React.FC<TreemapProps> = ({
       }
     });
 
-    // Add tooltips to node groups
+    // Add tooltips to node groups with more information
     nodeGroups.append('title')
-      .text((d) => `${d.data.name}\n${formatBytes(d.data.size)}`);
+      .text((d) => {
+        const parentSize = d.parent ? d.parent.value || 0 : hierarchy.value || 0;
+        const percentage = parentSize > 0 ? ((d.value || 0) / parentSize * 100).toFixed(1) : '0';
+        const path = d.ancestors().reverse().map(a => a.data.name).join(' → ');
+        return `${d.data.name}\n${formatBytes(d.data.size)}\n${percentage}% of parent\nPath: ${path}`;
+      });
 
   }, [data, width, height, onNodeClick, selectedNode]);
 
