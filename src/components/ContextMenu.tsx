@@ -53,6 +53,18 @@ export const ContextMenu: React.FC<ContextMenuProps> = ({
     }
   };
 
+  const handleMoveToTrash = async () => {
+    try {
+      await invoke('move_to_trash', { path });
+      onClose();
+      // Trigger a rescan of the parent directory
+      window.location.reload();
+    } catch (error) {
+      console.error('Failed to move to trash:', error);
+      alert(`Failed to move to trash: ${error}`);
+    }
+  };
+
   // Adjust position to keep menu on screen
   const adjustedX = Math.min(x, window.innerWidth - 200);
   const adjustedY = Math.min(y, window.innerHeight - 100);
@@ -79,6 +91,10 @@ export const ContextMenu: React.FC<ContextMenuProps> = ({
         )}
         <li className="context-menu-item" onClick={handleShowInFinder}>
           Show in Finder
+        </li>
+        <li className="context-menu-separator"></li>
+        <li className="context-menu-item" onClick={handleMoveToTrash}>
+          Move to Trash
         </li>
       </ul>
     </div>

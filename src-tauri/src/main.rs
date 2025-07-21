@@ -42,13 +42,46 @@ fn show_in_finder(path: String) -> Result<(), String> {
     }
 }
 
+#[tauri::command]
+fn move_to_trash(path: String) -> Result<(), String> {
+    #[cfg(target_os = "macos")]
+    {
+        use std::process::Command;
+        
+        // Use osascript to move file to trash
+        let script = format!(
+            r#"tell application "Finder" to delete POSIX file "{}" "#,
+            path
+        );
+        
+        let output = Command::new("osascript")
+            .arg("-e")
+            .arg(&script)
+            .output()
+            .map_err(|e| format!("Failed to execute AppleScript: {}", e))?;
+        
+        if !output.status.success() {
+            let error = String::from_utf8_lossy(&output.stderr);
+            return Err(format!("Failed to move to trash: {}", error));
+        }
+        
+        Ok(())
+    }
+    
+    #[cfg(not(target_os = "macos"))]
+    {
+        Err("Move to Trash is only available on macOS".to_string())
+    }
+}
+
 fn main() {
     tauri::Builder::default()
         .invoke_handler(tauri::generate_handler![
             scan_path,
             get_home_directory,
             cancel_scan,
-            show_in_finder
+            show_in_finder,
+            move_to_trash
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
