@@ -63,9 +63,9 @@ export const Treemap: React.FC<TreemapProps> = ({
     // Create hierarchy
     const hierarchy = d3.hierarchy<FileNode>(data)
       .sum((d) => {
-        // For directories with children, the size is already aggregated
-        // For files or empty directories, use the size directly
-        return d.children && d.children.length > 0 ? 0 : (d.size || 0);
+        // Only count leaf nodes (files and empty directories)
+        // D3 will automatically sum up the values for parent nodes
+        return !d.children || d.children.length === 0 ? (d.size || 0) : 0;
       })
       .sort((a, b) => (b.value || 0) - (a.value || 0));
     
@@ -82,10 +82,23 @@ export const Treemap: React.FC<TreemapProps> = ({
       } : null
     });
     
-    // If hierarchy has no value, something is wrong with the data
+    // If hierarchy has no value, recalculate
     if (hierarchy.value === 0) {
-      console.warn('[Treemap] Hierarchy has no value, using size directly');
-      hierarchy.sum((d) => d.size || 0);
+      console.warn('[Treemap] Hierarchy has no value, recalculating...');
+      // Try a different approach - use size for all nodes
+      hierarchy
+        .sum((d) => {
+          // For files, use their size
+          // For directories, if they have children, let D3 sum them up
+          // For empty directories, use their reported size
+          if (!d.isDir) {
+            return d.size || 0;
+          } else if (!d.children || d.children.length === 0) {
+            return d.size || 0;
+          }
+          return 0;
+        })
+        .sort((a, b) => (b.value || 0) - (a.value || 0));
     }
 
     console.log('[Treemap] Hierarchy created:', {
@@ -93,15 +106,26 @@ export const Treemap: React.FC<TreemapProps> = ({
       height: hierarchy.height,
       leaves: hierarchy.leaves().length
     });
+    
+    // Debug: Check values of top-level nodes
+    if (hierarchy.children) {
+      console.log('[Treemap] Top-level node values:', hierarchy.children.map(child => ({
+        name: child.data.name,
+        dataSize: child.data.size,
+        computedValue: child.value,
+        hasChildren: !!child.children,
+        childCount: child.children?.length || 0
+      })));
+    }
 
     // Create treemap with more padding for nested view
     const treemap = d3.treemap<FileNode>()
       .size([width, height])
-      .padding(2)
-      .paddingInner(3)
-      .paddingTop(20) // Extra space at top for parent labels
+      .padding(1)
+      .paddingInner(2)
+      .paddingTop(18) // Extra space at top for parent labels
       .round(true)
-      .tile(d3.treemapSquarify.ratio(1));
+      .tile(d3.treemapSquarify); // Use default squarify for better proportions
 
     const root = treemap(hierarchy);
     
