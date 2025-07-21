@@ -125,9 +125,12 @@ export const Treemap: React.FC<TreemapProps> = ({
     // Create treemap with more padding for nested view
     const treemap = d3.treemap<FileNode>()
       .size([width, height])
-      .padding(1)
-      .paddingInner(2)
-      .paddingTop(18) // Extra space at top for parent labels
+      .padding(2)
+      .paddingInner(4)
+      .paddingTop(24) // Extra space at top for parent labels
+      .paddingRight(6)
+      .paddingBottom(6)
+      .paddingLeft(6)
       .round(true)
       .tile(d3.treemapSquarify); // Use default squarify for better proportions
 
@@ -251,7 +254,7 @@ export const Treemap: React.FC<TreemapProps> = ({
       if (parent.x1 - parent.x0 > 80 && parent.y1 - parent.y0 > 30) {
         group.append('text')
           .attr('x', parent.x0 + (parent.x1 - parent.x0) / 2)
-          .attr('y', parent.y0 + 16)
+          .attr('y', parent.y0 + 18)
           .attr('text-anchor', 'middle')
           .attr('font-size', '15px')
           .attr('font-weight', '600')
@@ -391,7 +394,7 @@ export const Treemap: React.FC<TreemapProps> = ({
         
         // Position text at top for parent directories, center for others
         const textX = d.x0 + nodeWidth / 2;
-        const textY = isParent ? d.y0 + 15 : d.y0 + nodeHeight / 2 - (nodeHeight > 50 ? 8 : 0);
+        const textY = isParent ? d.y0 + 20 : d.y0 + nodeHeight / 2 - (nodeHeight > 50 ? 8 : 0);
         
         const text = svg.append('text')
           .attr('x', textX)
