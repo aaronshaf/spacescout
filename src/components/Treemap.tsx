@@ -69,6 +69,19 @@ export const Treemap: React.FC<TreemapProps> = ({
       })
       .sort((a, b) => (b.value || 0) - (a.value || 0));
     
+    console.log('[Treemap] Data structure:', {
+      rootName: data.name,
+      rootSize: data.size,
+      rootChildren: data.children?.length || 0,
+      firstChild: data.children?.[0] ? {
+        name: data.children[0].name,
+        size: data.children[0].size,
+        isDir: data.children[0].isDir,
+        hasChildren: !!data.children[0].children,
+        childCount: data.children[0].children?.length || 0
+      } : null
+    });
+    
     // If hierarchy has no value, something is wrong with the data
     if (hierarchy.value === 0) {
       console.warn('[Treemap] Hierarchy has no value, using size directly');
@@ -103,6 +116,16 @@ export const Treemap: React.FC<TreemapProps> = ({
       parents: parentNodes.length,
       children: childNodes.length,
       total: allNodes.length
+    });
+    
+    // Debug: Log some parent nodes to see if they have children
+    parentNodes.slice(0, 3).forEach(parent => {
+      console.log('[Treemap] Parent node:', {
+        name: parent.data.name,
+        hasChildren: !!parent.children,
+        childCount: parent.children?.length || 0,
+        children: parent.children?.map(c => ({ name: c.data.name, size: c.data.size }))
+      });
     });
 
     // Color scale based on file types and directories - returns gradient URL
